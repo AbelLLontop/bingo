@@ -1,51 +1,50 @@
-import { memo, useState } from "react"
+import { memo, useMemo, useState } from "react"
+import { cn } from "./utils/cn"
+
+
+
+type size = "extrasmall" | "small"
 
 interface BingoCellsProps {
   value: number
   select?: boolean,
-  size?: "extrasmall" | "small"
-
+  size?: size,
+  win?: boolean
 }
-const BingoCell = memo(({ select = false, value, size }: BingoCellsProps) => {
-  //temporal solution
-  if (size == "small") {
-    return (<div className="w-6 h-6 border flex justify-center items-center text-xs font-semibold  text-cyan-300 bg-cyan-800 relative">
-      {select && (
-        <span className="w-full h-full border-cyan-300 border-1 bg-cyan-500 rounded-full absolute"></span>
-      )}
-      {value}
-    </div>)
-  }
-  if (size == "extrasmall") {
-    return (<div className="w-4 h-4 border flex justify-center items-center text-[8px] font-semibold  text-cyan-300 bg-cyan-800 relative">
-      {select && (
-        <span className="w-full h-full border-cyan-300 border-1 bg-cyan-500 rounded-full absolute"></span>
-      )}
-      {value}
-    </div>)
-  }
+const BingoCell = memo(({ select = false, value, size, win }: BingoCellsProps) => {
+  return (<div className={cn("relative flex items-center justify-center w-12 h-12 text-xl font-semibold border text-cyan-300 bg-cyan-800", {
+    "w-6 h-6 text-xs": size == "small",
+    "w-4 h-4 text-[8px]": size == "extrasmall",
+    "text-yellow-300 bg-yellow-800": win
+  })}>
 
-
-  return (<div className="w-12 h-12 border flex justify-center items-center text-xl font-semibold  text-cyan-300 bg-cyan-800 relative">
     {select && (
-      <span className="w-full h-full border-cyan-300 border-2 bg-cyan-500 rounded-full absolute"></span>
+      <span className={cn("absolute w-full h-full border-2 rounded-full border-cyan-300 bg-cyan-500 opacity-85", {
+        "border-yellow-300 bg-yellow-500": win
+      })}></span>
     )}
+
     {value}
+    {win&&(<div className="absolute w-1 h-full bg-yellow-100 blur-[1px] !shadow-[0px_0px_10px_yellow] left-1/2 "></div>)}
   </div>)
+
 })
 
 interface BingoCardProps {
   bingo: number[][],
-  size?: "extrasmall" | "small",
-  market: Set<number>
+  size?: size,
+  market: Set<number>,
 }
 const BingoCard = memo(({ bingo, size, market }: BingoCardProps) => {
+  const winRows = useMemo(() => validateWinRow(bingo, market), [bingo, market]);
   return (
-    <article className="flex border-cyan-300 border-4 rounded-xl overflow-hidden">
+    <article className={cn("flex overflow-hidden border-4 border-cyan-300 rounded-xl", {
+      "border-yellow-300": (winRows.size > 0)
+    })}>
       {bingo.map((col: number[], index: number) => (
         <div key={index}>
           {col.map(value => (
-            <BingoCell size={size} key={value} value={value} select={market.has(value)} />
+            <BingoCell size={size} key={value} value={value} select={market.has(value)} win={winRows.has(value)} />
           ))}
 
         </div>
@@ -57,37 +56,43 @@ const BingoCard = memo(({ bingo, size, market }: BingoCardProps) => {
 })
 
 
+
+
 const BoardBingoList = ({ bingos, market }: { bingos: number[][][], market: Set<number> }) => {
   const principalBingos = bingos.slice(0, 6);
-  const secondaryBingos = bingos.slice(5, 15)
-  const othersBingos = bingos.slice(14, bingos.length - 1)
+  const secondaryBingos = bingos.slice(5, 20)
+  const othersBingos = bingos.slice(19, bingos.length - 1)
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap items-start w-full gap-2 justify-evenly md:justify-start">
+      {principalBingos.map((bingo, index: number) => (
+        <BingoCard key={index} bingo={bingo} market={market} />
 
-      <div className="flex flex-wrap gap-2 justify-center">
-        {principalBingos.map((bingo, index: number) => (
-          <div key={index} className="grow-0 shrink-0">
-            <BingoCard bingo={bingo} market={market} />
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap justify-center  gap-2">
-        {secondaryBingos.map((bingo, index: number) => (
-          <div key={index} className="grow-0 shrink-0 ">
-            <BingoCard bingo={bingo} size="small" market={market} />
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap justify-center  text-base gap-2">
-        {othersBingos.map((bingo, index: number) => (
-          <div key={index} className="grow-0 shrink-0 bg-blue-500">
-            <BingoCard bingo={bingo} size="extrasmall" market={market} />
-          </div>
-        ))}
-      </div>
+      ))}
+
+      {secondaryBingos.map((bingo, index: number) => (
+        <BingoCard key={index} bingo={bingo} size="small" market={market} />
+      ))}
+
+      {othersBingos.map((bingo, index: number) => (
+        <BingoCard key={index} bingo={bingo} size="extrasmall" market={market} />
+      ))}
     </div>
+
   )
 }
+
+const validateWinRow = (bingo: number[][], market: Set<number>) => {
+  const valuesWin = new Set<number>();
+  for (let col = 0; col < bingo.length; col++) {
+    const matchAllRow = bingo[col].every(num => market.has(num));
+    if (matchAllRow) {
+      const rowValues = bingo[col];
+      rowValues.forEach(v => valuesWin.add(v))
+    }
+  }
+  return valuesWin;
+}
+
 
 
 function App() {
@@ -106,12 +111,21 @@ function App() {
 
 
   return (
-    <main className="w-full min-h-screen bg-slate-800 flex justify-center items-center flex-col gap-4">
-      <ListMakertValues marketNumbers={marketNumbers} />
-      <button className="hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300  px-4 py-2 rounded-xl outline-none" onClick={generateNumber}>Generate Number</button>
-      <button className="hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300  px-4 py-2 rounded-xl outline-none" onClick={generateCard}>{bingos.length} - Generar Boleto</button>
+    <main className="w-full min-h-screen bg-slate-800">
+      <header className="py-8 text-center">
+        <h1 className="text-3xl font-bold text-cyan-100">BINGO GAME</h1>
+        <p className="text-cyan-600">¡Buena suerte!</p>
+      </header>
+      <div className="container mx-auto ">
+        <div className="flex justify-between py-4">
+          <div className="text-xl text-cyan-300">Cartones de Bingo ({bingos.length})</div>
+          <button className="px-4 py-2 outline-none cursor-pointer hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300 rounded-xl" onClick={generateCard}>Generar Cartones</button>
+        </div>
+        <ListMakertValues marketNumbers={marketNumbers} />
+        <button className="px-4 py-2 outline-none hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300 rounded-xl" onClick={generateNumber}>Generate Number</button>
 
-      <BoardBingoList bingos={bingos} market={marketNumbers} />
+        <BoardBingoList bingos={bingos} market={marketNumbers} />
+      </div>
 
     </main>
   )
@@ -120,9 +134,9 @@ function App() {
 const ListMakertValues = ({ marketNumbers }: { marketNumbers: Set<number> }) => {
   const listValues = Array.from(marketNumbers.values())
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex flex-wrap gap-2">
       {listValues.map((value, index: number) => (
-        <div key={index} className="w-16 h-16 border-4 flex justify-center items-center text-2xl font-semibold  text-cyan-300 bg-cyan-800 relative rounded-full">
+        <div key={index} className="relative flex items-center justify-center w-16 h-16 text-2xl font-semibold border-4 rounded-full text-cyan-300 bg-cyan-800">
           {value}
         </div>
       ))}
