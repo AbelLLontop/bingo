@@ -25,7 +25,7 @@ const BingoCell = memo(({ select = false, value, size, win }: BingoCellsProps) =
     )}
 
     {value}
-    {win&&(<div className="absolute w-1 h-full bg-yellow-100 blur-[1px] !shadow-[0px_0px_10px_yellow] left-1/2 "></div>)}
+    {win && (<div className="absolute w-1 h-full bg-yellow-100 blur-[1px] !shadow-[0px_0px_10px_yellow] left-1/2 "></div>)}
   </div>)
 
 })
@@ -60,8 +60,8 @@ const BingoCard = memo(({ bingo, size, market }: BingoCardProps) => {
 
 const BoardBingoList = ({ bingos, market }: { bingos: number[][][], market: Set<number> }) => {
   const principalBingos = bingos.slice(0, 6);
-  const secondaryBingos = bingos.slice(5, 20)
-  const othersBingos = bingos.slice(19, bingos.length - 1)
+  const secondaryBingos = bingos.slice(6, 20)
+  const othersBingos = bingos.slice(20, bingos.length)
   return (
     <div className="flex flex-wrap items-start w-full gap-2 justify-evenly md:justify-start">
       {principalBingos.map((bingo, index: number) => (
@@ -117,13 +117,18 @@ function App() {
         <p className="text-cyan-600">¡Buena suerte!</p>
       </header>
       <div className="container mx-auto ">
+
+        <div className="flex justify-between py-4">
+          <div className="text-xl text-cyan-300">Todos los números ({marketNumbers.size}/75)</div>
+          <button className="px-4 py-2 outline-none hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300 rounded-xl" onClick={generateNumber}>Generate Number</button>
+        </div>
+        <ListMakertValues marketNumbers={marketNumbers} />
+        <AllMarksNumbers marketNumbers={marketNumbers} />
+
         <div className="flex justify-between py-4">
           <div className="text-xl text-cyan-300">Cartones de Bingo ({bingos.length})</div>
           <button className="px-4 py-2 outline-none cursor-pointer hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300 rounded-xl" onClick={generateCard}>Generar Cartones</button>
         </div>
-        <ListMakertValues marketNumbers={marketNumbers} />
-        <button className="px-4 py-2 outline-none hover:bg-cyan-600 active:bg-cyan-700 bg-cyan-800 text-cyan-300 rounded-xl" onClick={generateNumber}>Generate Number</button>
-
         <BoardBingoList bingos={bingos} market={marketNumbers} />
       </div>
 
@@ -131,15 +136,61 @@ function App() {
   )
 }
 
+const Ball = memo(({ value }: { value: number }) => {
+  return (
+    <div className={cn("flex items-center justify-center w-12 h-12 rounded-full text-md bg-cyan-700", {
+      "bg-red-700": value >= 1 && value <= 15,
+      "bg-blue-700": value >= 16 && value <= 30,
+      "bg-purple-700": value >= 31 && value <= 45,
+      "bg-green-700": value >= 46 && value <= 60,
+      "bg-orange-700": value >= 61 && value <= 75,
+    })}>
+      <div className="flex items-center justify-center text-white rounded-full w-7 h-7 bg-white/20">
+        {value}
+      </div>
+    </div>
+  )
+})
+
 const ListMakertValues = ({ marketNumbers }: { marketNumbers: Set<number> }) => {
   const listValues = Array.from(marketNumbers.values())
   return (
     <div className="flex flex-wrap gap-2">
       {listValues.map((value, index: number) => (
-        <div key={index} className="relative flex items-center justify-center w-16 h-16 text-2xl font-semibold border-4 rounded-full text-cyan-300 bg-cyan-800">
-          {value}
-        </div>
+        <Ball key={index} value={value} />
       ))}
+    </div>
+  )
+}
+const AllMarksNumbers = ({ marketNumbers }: { marketNumbers: Set<number> }) => {
+  const listValues = Array.from(marketNumbers.values())
+  const B = listValues.filter(value => value >= 1 && value <= 15);
+  const I = listValues.filter(value => value >= 16 && value <= 30);
+  const N = listValues.filter(value => value >= 31 && value <= 45);
+  const G = listValues.filter(value => value >= 46 && value <= 60);
+  const O = listValues.filter(value => value >= 61 && value <= 75);
+
+  return (
+    <div className="grid grid-cols-5 gap-2 p-2 rounded-lg bg-cyan-950">
+      <RowMarkListBalls title="B" values={B} />
+      <RowMarkListBalls title="I" values={I} />
+      <RowMarkListBalls title="N" values={N} />
+      <RowMarkListBalls title="G" values={G} />
+      <RowMarkListBalls title="O" values={O} />
+
+    </div>
+  )
+}
+
+const RowMarkListBalls = ({ title, values }: { title: string, values: number[] }) => {
+  return (
+    <div>
+      <div className="w-full p-2 mb-2 font-bold text-center text-white rounded-lg bg-cyan-800">{title}</div>
+      <div className="flex flex-col items-center gap-2">
+        {values.map((value, index) => (
+          <Ball key={index} value={value} />
+        ))}
+      </div>
     </div>
   )
 }
